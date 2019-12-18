@@ -15,8 +15,13 @@ COPY . .
 WORKDIR /app/src/Web
 RUN dotnet restore
 
-#COPY . .
-#RUN dotnet build eShopOnWeb.sln
+#FROM build AS publish
+WORKDIR /app/src/Web
+RUN dotnet publish -c Release -o out
+
+
+WORKDIR /app/src/Web
+RUN dotnet build
 
 FROM build AS testrunner
 WORKDIR /app/tests/UnitTests
@@ -24,19 +29,13 @@ CMD ["dotnet", "test", "--logger:trx"]
 
 # run the unit tests
 FROM build AS test
-# set the directory to be within the unit test project
 WORKDIR /app/tests/UnitTests
-# run the unit tests
 RUN dotnet test --logger:trx
 
-RUN dotnet publish -c Release -o out
 
 FROM mcr.microsoft.com/dotnet/core/aspnet:3.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/src/Web/out ./
-
-# Optional: Set this here if not setting it from docker-compose.yml
-# ENV ASPNETCORE_ENVIRONMENT Development
 
 ENTRYPOINT ["dotnet", "Web.dll"]
 
